@@ -27,7 +27,7 @@ const pool = new Pool({
 });
 
 app.use(cors({
-    origin: process.env.FRONTEND_URL, // ✅ Frontend full URL with https
+    origin: 'https://dev-profiles.netlify.app', // ✅ Frontend full URL with https
     credentials: true, // ✅ To send cookies
 }));
 
