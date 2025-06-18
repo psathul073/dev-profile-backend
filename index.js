@@ -20,29 +20,29 @@ app.use(cors({
 
 app.use(express.json()); // Parses incoming JSON requests
 
-// app.use(session({
-//     secret: process.env.SESSION_SECRET,
-//     resave: false,
-//     saveUninitialized: false,
-//     cookie: {
-//         maxAge: 1000 * 60 * 60 * 24 * 30,
-//         secure: process.env.NODE_ENV === "production",
-//         httpOnly: true,
-//         sameSite: "none",
-//     },
-// }));
-
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 30,
-        secure: false,         // ❌ not using HTTPS locally
+        secure: process.env.NODE_ENV === "production",
         httpOnly: true,
-        sameSite: "lax",       // ✅ lax works locally with http
+        sameSite: "none",
     },
 }));
+
+// app.use(session({
+//     secret: process.env.SESSION_SECRET,
+//     resave: false,
+//     saveUninitialized: false,
+//     cookie: {
+//         maxAge: 1000 * 60 * 60 * 24 * 30,
+//         secure: false,         // ❌ not using HTTPS locally
+//         httpOnly: true,
+//         sameSite: "lax",       // ✅ lax works locally with http
+//     },
+// }));
 
 
 app.use(passport.initialize());
