@@ -11,16 +11,16 @@ router.get("/google", passport.authenticate("google", { scope: ["profile", "emai
 
 router.get("/google/callback",
     passport.authenticate("google", {
-        successRedirect: "http://localhost:3000",
-        failureRedirect: "http://localhost:3000/login"
+        successRedirect: process.env.FRONTEND_URL,
+        failureRedirect: process.env.FRONTEND_URL+"/login"
     }),
 );
 
 // Github Auth Route
 router.get('/github', passport.authenticate("github", { scope: ["user:email"] }));
 router.get('/github/callback', passport.authenticate('github', {
-    successRedirect: "http://localhost:3000",
-    failureRedirect: "http://localhost:3000/login"
+    successRedirect: process.env.FRONTEND_URL,
+    failureRedirect: process.env.FRONTEND_URL+"/login"
 }));
 
 router.get("/user", (req, res) => {
