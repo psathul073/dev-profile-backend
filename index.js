@@ -7,11 +7,24 @@ import authRoute from "./routes/auth-routes.js";
 import protectedRoute from "./routes/protected-route.js";
 import profileRoute from "./routes/profile-route.js";
 import projectRoutes from "./routes/project-routes.js";
+import connectPgSimple from "connect-pg-simple";
+import pkg  from 'pg';
+
 
 env.config();
 
 const app = express();
 const port = process.env.PORT;
+const { Pool } = pkg;
+const PgSession = connectPgSimple(session);
+
+// Create new client.
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' && {
+        rejectUnauthorized: false,
+    },
+});
 
 app.use(cors({
     origin: process.env.FRONTEND_URL, // ✅ Frontend full URL with https
@@ -21,6 +34,10 @@ app.use(cors({
 app.use(express.json()); // Parses incoming JSON requests
 
 app.use(session({
+    store:  new PgSession({
+        pool,
+        tableName: 'session', // default
+    }),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
