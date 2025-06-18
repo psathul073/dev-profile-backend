@@ -13,7 +13,8 @@ passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: process.env.BACKEND_URL + "/auth/google/callback",
-    userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
+    // userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
+    prompt: 'select_account',
     scope: ["profile", "email"],
 }, async (accessToken, refreshToken, profile, done) => {
     try {
