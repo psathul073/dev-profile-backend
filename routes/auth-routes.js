@@ -11,8 +11,8 @@ router.get("/google", passport.authenticate("google", { scope: ["profile", "emai
 
 router.get("/google/callback",
     passport.authenticate("google", {
-        successRedirect: "https://dev-profiles.netlify.app/login",
-        failureRedirect: "https://dev-profiles.netlify.app/login"
+        successRedirect: process.env.FRONTEND_URL,
+        failureRedirect: process.env.FRONTEND_URL + "/login",
     }),
 );
 
@@ -49,7 +49,8 @@ router.get('/logout', (req, res, next) => {
                 secure: process.env.NODE_ENV === 'production',
             });
 
-            res.redirect('/login');
+            // res.redirect('/login');
+            res.status(200).json({ type: true, message: "Logged out successfully" });
         });
     });
 });

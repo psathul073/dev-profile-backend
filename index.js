@@ -27,11 +27,12 @@ const pool = new Pool({
 });
 
 app.use(cors({
-    origin: 'https://dev-profiles.netlify.app', // ✅ Frontend full URL with https
+    origin: process.env.FRONTEND_URL, // ✅ Frontend full URL with https
     credentials: true, // ✅ To send cookies
 }));
 
 app.use(express.json()); // Parses incoming JSON requests
+app.set('trust proxy', 1); // Important for Render working...
 
 app.use(session({
     store:  new PgSession({
