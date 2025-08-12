@@ -8,15 +8,16 @@ env.config();
 
 const db = admin.firestore();
 // db.settings({ ignoreUndefinedProperties: true }); // To prevents undefined
+const rtdb = admin.database(); // Realtime database.
 
 const router = express.Router();
 
 // Add project ✅
 router.post('/add', upload.single('picture'), async (req, res) => {
+  
     if (!req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
+   
     try {
-        // console.log(req.body, '--body');
-        // console.log(req.file, '==file');
 
         const { title, description, liveURL, demoURL } = req.body;
         const path = req.file?.path;
@@ -27,11 +28,10 @@ router.post('/add', upload.single('picture'), async (req, res) => {
         const snapshot = await db.collection('users').doc(userId).collection('projects').get();
         const projectRef = db.collection('users').doc(userId).collection('projects');
         const projects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // console.log(projects, '--projects');
+
 
         // Check project is already exists.
         const isExists = projects.some((project) => project.title.toLowerCase() === title.toLowerCase());
-        // console.log(isExists, '--Exist');
 
         if (!isExists) {
             await projectRef.add({
@@ -58,8 +58,6 @@ router.put('/update', upload.single('picture'), async (req, res) => {
 
     if (!req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
 
-    // console.log(req.body, '--body');
-    // console.log(req.file, '==file');
     try {
         const { title, description, liveURL, demoURL, pictureID, projectID } = req.body;
 
@@ -67,10 +65,8 @@ router.put('/update', upload.single('picture'), async (req, res) => {
         const filename = req.file?.filename;
         const userId = req.user.id;
 
-
         // Remove old picture in Cloudinary
         const oldPictureId = pictureID ?? null;
-        // console.log(oldPictureId, "old photo id");
 
         if (oldPictureId && req?.file) {
             try {
@@ -105,7 +101,7 @@ router.put('/update', upload.single('picture'), async (req, res) => {
 
 // Delete project ✅
 router.delete('/delete', async (req, res) => {
-    console.log(req.query, '==id');
+
     if (!req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
     try {
         const userId = req.user.id;
@@ -146,11 +142,15 @@ router.get('/get', async (req, res) => {
     try {
 
         const userProjectRef = db.collection('users').doc(userId).collection('projects');
-        let query = userProjectRef.orderBy('createdAt', 'desc').limit(Number(limit));
+        let query = userProjectRef.orderBy('createdAt', 'desc')
+            .orderBy(admin.firestore.FieldPath.documentId())
+            .limit(Number(limit));
 
         if (startAfter) {
-            const timestamp = admin.firestore.Timestamp.fromMillis(Number(startAfter));
-            query = query.startAfter(timestamp);
+            const { createdAt, id } = JSON.parse(startAfter);
+
+            const timestamp = admin.firestore.Timestamp.fromMillis(Number(createdAt));
+            query = query.startAfter(timestamp, id);
         };
 
         // Get all projects
@@ -162,7 +162,10 @@ router.get('/get', async (req, res) => {
 
         // last project's createdAt to use in the next page
         const last = snapshot.docs[snapshot.docs.length - 1];
-        const nextCursor = last?.data()?.createdAt?.toMillis() || null;
+        const nextCursor = last ? JSON.stringify({
+            createdAt: last.data().createdAt.toMillis(),
+            id: last.id,
+        }) : null;
 
         res.json({ projects, nextCursor });
 
@@ -188,7 +191,6 @@ router.get('/single', async (req, res) => {
         const projectRef = db.collection('users').doc(userId).collection('projects').doc(projectID);
         const doc = await projectRef.get();
         const existingData = doc.data();
-        console.log(existingData);
 
         if (existingData) {
             res.status(200).json(existingData);
@@ -199,6 +201,41 @@ router.get('/single', async (req, res) => {
         res.status(500).json({ type: false, error: "Server error" });
     }
 
+});
+
+// Fetch total project and Likes.
+router.get('/counts', async (req, res) => {
+
+    try {
+
+        if (!req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
+
+        const userId = req.user.id;
+        const projectsRef = db.collection('users').doc(userId).collection('projects');
+        const projectsSnapshot = await projectsRef.get();
+        const totalProject = projectsSnapshot.size;
+
+        const likes = Promise.all(projectsSnapshot.docs.map(async (doc) => {
+            const data = doc.data();
+
+            const likesSnap = await rtdb.ref(`projects/${doc.id}/totalLikes`).once('value');
+            return {
+                totalLikes: likesSnap.exists() ? likesSnap.val() : 0
+            }
+        }));
+        const likeCount = await likes;
+        const totalLikes = likeCount.reduce((sum, like) => sum + (like.totalLikes || 0), 0);
+
+        res.status(200).json({
+            totalProject,
+            totalLikes
+        });
+
+
+    } catch (error) {
+        console.error("Total count fetch Error:", error);
+        res.status(500).json({ type: false, error: "Server error" });
+    }
 });
 
 // Fetch all project for public. ✅
