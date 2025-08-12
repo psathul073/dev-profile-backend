@@ -12,7 +12,7 @@ const db = admin.firestore();
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.BACKEND_URL + "/auth/google/callback",
+    callbackURL: process.env.BACKEND_URL + '/auth/google/callback',
     userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
     scope: ["profile", "email"],
     // prompt: 'consent select_account',
@@ -64,7 +64,7 @@ passport.use(new GoogleStrategy({
 passport.use(new GithubStrategy({
     clientID: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: process.env.BACKEND_URL + "/auth/github/callback",
+    callbackURL: process.env.BACKEND_URL + '/auth/github/callback',
 }, async (accessToken, refreshToken, profile, done) => {
     try {
         const rawEmail = profile.emails?.[0]?.value;
