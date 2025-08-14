@@ -14,12 +14,12 @@ const router = express.Router();
 
 // Add project ✅
 router.post('/add', upload.single('picture'), async (req, res) => {
-  
+
     if (!req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
-   
+
     try {
 
-        const { title, description, liveURL, demoURL } = req.body;
+        const { title, description, liveURL, demoURL, usedTec } = req.body;
         const path = req.file?.path;
         const filename = req.file?.filename;
         const userId = req.user.id;
@@ -28,7 +28,6 @@ router.post('/add', upload.single('picture'), async (req, res) => {
         const snapshot = await db.collection('users').doc(userId).collection('projects').get();
         const projectRef = db.collection('users').doc(userId).collection('projects');
         const projects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
 
         // Check project is already exists.
         const isExists = projects.some((project) => project.title.toLowerCase() === title.toLowerCase());
@@ -39,6 +38,7 @@ router.post('/add', upload.single('picture'), async (req, res) => {
                 picture: path,
                 pictureID: filename,
                 description: description,
+                usedTec: JSON.parse(usedTec),
                 demoURL: demoURL,
                 liveURL: liveURL,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -59,7 +59,7 @@ router.put('/update', upload.single('picture'), async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
 
     try {
-        const { title, description, liveURL, demoURL, pictureID, projectID } = req.body;
+        const { title, description, liveURL, demoURL, pictureID, projectID, usedTec } = req.body;
 
         const path = req.file?.path;
         const filename = req.file?.filename;
@@ -80,6 +80,7 @@ router.put('/update', upload.single('picture'), async (req, res) => {
         const newData = {
             title: title,
             description: description,
+            usedTec: JSON.parse(usedTec),
             liveURL,
             demoURL,
             picture: path,
@@ -118,8 +119,37 @@ router.delete('/delete', async (req, res) => {
             }
         };
 
-        // Delete doc
+
+        const snapshot = await rtdb.ref(`projects/${projectID}/userLikes`).once("value");
+
+        // Liked anonyms user deleted.
+        if (snapshot.exists()) {
+            const children = snapshot.val();
+            // keys only.
+            const keys = Object.keys(children);
+
+            await Promise.all(
+                keys.map(async (uid) => {
+                    try {
+                        const userRecord = await admin.auth().getUser(uid);
+                        if (userRecord.providerData.length === 0) { // anonymous
+                            await admin.auth().deleteUser(uid);
+                            console.log(`Anonymous user ${uid} deleted ✅`);
+                        }
+                    } catch (err) {
+                        console.warn(`Could not delete user ${uid}:`, err.message);
+                    }
+                })
+            );
+        }
+
+        // Delete Likes.
+        await rtdb.ref(`projects/${projectID}`).remove();
+
+        // Delete doc.
         await db.collection('users').doc(userId).collection('projects').doc(projectID).delete();
+        console.log(`Project ${projectID} deleted ✅`);
+
         res.status(200).json({ message: 'Project deleted successfully' })
 
     } catch (error) {
@@ -137,7 +167,6 @@ router.get('/get', async (req, res) => {
     const { limit = 5, startAfter } = req.query;
     const userId = req.user.id;
 
-    // console.log(startAfter, '--next');
 
     try {
 
@@ -203,7 +232,7 @@ router.get('/single', async (req, res) => {
 
 });
 
-// Fetch total project and Likes.
+// Fetch total project and Likes ✅
 router.get('/counts', async (req, res) => {
 
     try {
@@ -238,22 +267,68 @@ router.get('/counts', async (req, res) => {
     }
 });
 
+// Make project public ✅
+router.put('/public', async (req, res) => {
+    try {
+        if (!req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
+        const userId = req.user.id;
+        const { projectID } = req.query;
+
+        const projectRef = db.collection('users').doc(userId).collection('projects').doc(projectID);
+        const projectSnapshot = await projectRef.get();
+
+        if (projectSnapshot.exists) {
+            projectRef.set({
+                public: true,
+            }, { merge: true });
+        }
+
+        return res.status(200).json({ type: true, message: "Project make to public!" });
+
+    } catch (error) {
+        console.error("Project to public Error:", error);
+        res.status(500).json({ type: false, error: "Server error" });
+    }
+});
+
+// Make project private ✅
+router.put('/private', async (req, res) => {
+    try {
+        if (!req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
+        const userId = req.user.id;
+        const { projectID } = req.query;
+        const projectRef = db.collection('users').doc(userId).collection('projects').doc(projectID);
+        const projectSnapshot = await projectRef.get();
+
+        if (projectSnapshot.exists) {
+            projectRef.set({
+                public: false,
+            }, { merge: true });
+        }
+
+        return res.status(200).json({ type: true, message: "Project make to private!" });
+
+    } catch (error) {
+        console.error("Project to private Error:", error);
+        res.status(500).json({ type: false, error: "Server error" });
+    }
+});
+
 // Fetch all project for public. ✅
 router.get('/public-all', async (req, res) => {
-    const { username, limit = 5, startAfter } = req.query;
-    // console.log(username, '==username');
+    const { username, limit = 10, startAfter } = req.query;
+
     try {
 
         // Find userId by username.
-        const userSnap = await db.collection('users').where('name', '==', username).limit(1).get();
+        const userSnap = await db.collection('users').where('name', '==', username).limit(Number(1)).get();
         if (userSnap.empty) return res.status(404).json({ error: 'User not found' });
 
         const userId = userSnap.docs[0].id;
-        // console.log(userId, '--user ID--');
 
         // Get projects based on the userId.
         const userProjectRef = db.collection('users').doc(userId).collection('projects');
-        let query = userProjectRef.orderBy('createdAt', 'desc').limit(Number(limit));
+        let query = userProjectRef.orderBy('createdAt', 'desc').where('public', '==', true).limit(Number(limit));
 
         // IF true skip all documents before that timestamp.
         if (startAfter) {

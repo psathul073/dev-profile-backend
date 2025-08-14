@@ -4,6 +4,7 @@ import upload from '../middleware/multer.js';
 import cloudinary from "../config/cloudinary.js";
 import admin from "../config/firebase.js";
 import { deleteUserImages, deleteUserProjects } from "../utils/deleteUserData.js";
+import checkRateLimit from "../middleware/checkRateLimit.js";
 
 
 env.config();
@@ -13,7 +14,7 @@ db.settings({ ignoreUndefinedProperties: true }); // To prevents undefined
 
 const router = express.Router();
 
-router.post('/profile', upload.single('avatar'), async (req, res) => {
+router.post('/profile-update', upload.single('avatar'), async (req, res) => {
 
     if (!req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
 
@@ -96,9 +97,9 @@ router.post('/profile', upload.single('avatar'), async (req, res) => {
         // Save only if different
         if (isDataDifferent(existingData, newData)) {
 
-                await useRef.set(newData, { merge: true });
-                console.log("✅ User updated.");
-                res.status(200).json({ type: true, message: "User updated" });
+            await useRef.set(newData, { merge: true });
+            console.log("✅ User updated.");
+            res.status(200).json({ type: true, message: "User updated" });
 
         } else {
             console.log("ℹ️ No changes needed. Data already exists.");
@@ -118,12 +119,70 @@ router.delete('/delete-account', async (req, res) => {
     try {
         await deleteUserImages(userId);  //🧹 Remove Cloudinary files
         await deleteUserProjects(userId); // 📄 Remove Firestore projects
+        
         await db.doc(`users/${userId}`).delete(); // 👤 Remove user profile
         await admin.auth().deleteUser(userId); // 🔐 Remove Auth account
         res.status(200).json({ message: 'Account deleted successfully.' })
     } catch (error) {
         console.error("Account deletion Error:", error);
         res.status(500).json({ type: false, error: "Server error" });
+    }
+});
+
+// Generate API Key.
+router.get('/generate-key', async (req, res) => {
+    try {
+        if (!req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
+
+        const userId = req.user.id;
+
+        // Check if user already has an API key.
+        const queryKeys = await db.collection('apiKeys').where("userId", '==', userId).get();
+
+        if (!queryKeys.empty) {
+            for (const docSnap of queryKeys.docs) {
+                await docSnap.ref.delete();
+            }
+        }
+
+        const apiKey = crypto.randomUUID(); // Unique key.
+
+        const apiKeysRef = db.collection('apiKeys').doc(apiKey);
+        await apiKeysRef.create({
+            userId,
+            createdAt: Date.now(),
+            requestsToday: 0,
+            lastRequestDate: new Date().toISOString().split("T")[0],
+        });
+
+        res.json({ success: true, apiKey });
+
+    } catch (error) {
+        console.error("API Key generation Error:", error);
+        res.status(500).json({ type: false, error: "Server error" });
+    }
+});
+
+// For fetch all projects by API key.
+router.get("/projects", checkRateLimit, async (req, res) => {
+    try {
+        const { limit = 10 } = req.query;
+        const UID  = req.userId;
+
+        // Get projects based on the userId.
+        const userProjectRef = db.collection('users').doc(UID).collection('projects').limit(Number(limit));
+
+        // Get all projects
+        const projectsSnapshot = await userProjectRef.get();
+        const projects = projectsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+        }));
+        
+        res.status(200).json({ type: true, ...projects });
+
+    } catch (error) {
+        res.status(500).json({ type: false, error: "Server error!" });
     }
 });
 

@@ -3,7 +3,6 @@ import express from 'express';
 const router = express.Router();
 
 router.get("/home", (req, res) => {
-    console.log(req.user);
 
     if (!req.isAuthenticated()) {
         return res.status(401).json({ message: "Not authenticated" });
