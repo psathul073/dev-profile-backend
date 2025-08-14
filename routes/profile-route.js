@@ -125,12 +125,13 @@ router.delete('/delete-account', async (req, res) => {
             }
         }
 
-        await deleteUserImages(userId);  //🧹 Remove Cloudinary files
-        await deleteUserProjects(userId); // 📄 Remove Firestore projects
-        
-        await db.doc(`users/${userId}`).delete(); // 👤 Remove user profile
+        await deleteUserImages(userId);  //🧹 Remove Cloudinary files.
+        await deleteUserProjects(userId); // 📄 Remove Firestore projects.
+        await db.collection('users').doc(userId).delete(); // 👤 Remove user profile.
         await admin.auth().deleteUser(userId); // 🔐 Remove Auth account
-        res.status(200).json({ message: 'Account deleted successfully.' })
+
+        res.status(200).json({ message: 'Account deleted successfully.' });
+
     } catch (error) {
         console.error("Account deletion Error:", error);
         res.status(500).json({ type: false, error: "Server error" });
