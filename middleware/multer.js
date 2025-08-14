@@ -7,7 +7,7 @@ const storage = new CloudinaryStorage({
   cloudinary,
   params: {
     folder: "dev-profile_uploads", // Folder name in Cloudinary
-    allowed_formats: ["png", "jpeg"],
+    allowed_formats: ["png", "jpeg", "webp"],
   },
 });
 
