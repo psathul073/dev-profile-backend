@@ -117,6 +117,14 @@ router.delete('/delete-account', async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
     const userId = req.user.id;
     try {
+
+        const apiKeysQuery = await db.collection('apiKeys').where("userId", '==', userId).get();
+        if (!queryKeys.empty) {
+            for (const docSnap of apiKeysQuery.docs) {
+                await docSnap.ref.delete(); // Delete API Keys.
+            }
+        }
+
         await deleteUserImages(userId);  //🧹 Remove Cloudinary files
         await deleteUserProjects(userId); // 📄 Remove Firestore projects
         
