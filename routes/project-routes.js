@@ -80,7 +80,7 @@ router.put('/update', upload.single('picture'), async (req, res) => {
         const newData = {
             title: title,
             description: description,
-            usedTec: JSON.parse(usedTec),
+            usedTec: usedTec ? JSON.parse(usedTec) : [],
             liveURL,
             demoURL,
             picture: path,
