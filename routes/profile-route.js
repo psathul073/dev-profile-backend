@@ -119,7 +119,7 @@ router.delete('/delete-account', async (req, res) => {
     try {
 
         const apiKeysQuery = await db.collection('apiKeys').where("userId", '==', userId).get();
-        if (!queryKeys.empty) {
+        if (!apiKeysQuery.empty) {
             for (const docSnap of apiKeysQuery.docs) {
                 await docSnap.ref.delete(); // Delete API Keys.
             }
