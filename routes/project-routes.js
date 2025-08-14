@@ -38,7 +38,7 @@ router.post('/add', upload.single('picture'), async (req, res) => {
                 picture: path,
                 pictureID: filename,
                 description: description,
-                usedTec: JSON.parse(usedTec),
+                usedTec: usedTec ? JSON.parse(usedTec) : [],
                 demoURL: demoURL,
                 liveURL: liveURL,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
