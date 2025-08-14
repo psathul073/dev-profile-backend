@@ -119,7 +119,6 @@ router.delete('/delete', async (req, res) => {
             }
         };
 
-
         const snapshot = await rtdb.ref(`projects/${projectID}/userLikes`).once("value");
 
         // Liked anonyms user deleted.
