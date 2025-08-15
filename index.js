@@ -37,8 +37,7 @@ const internalOrigins = [
 const privateCors = cors({
 
     origin: (origin, callback) => {
-
-        if (!origin || origin.includes('google') || origin.includes('github')) return callback(null, true); // (Postman, OAuth) / server-to-server,
+        if (!origin) return callback(null, true); // Postman / server-to-server,
         if (internalOrigins.includes(origin)) return callback(null, true); // For our frontend.
         return callback(new Error("Not allowed by CORS"));
     },
@@ -90,13 +89,12 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 
+app.use('/auth', publicCors, authRoute);
 // Private routes.
 app.use('/', privateCors, protectedRoute);
 app.use('/u', privateCors, profileRoute);
 app.use('/p', privateCors, projectRoutes);
-
 // Public API routes (anyone can access).
-app.use('/auth', publicCors, authRoute);
 app.use('/api', publicCors, publicRoute);
 
 // ⭐ Global error handler
