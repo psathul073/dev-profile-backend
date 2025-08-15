@@ -83,8 +83,9 @@ app.use(passport.session());
 
 // Private routes (only frontend allowed).
 app.use('/auth', (req, res, next) => {
+    // Allow OAuth redirect/callback to bypass private CORS
     if (req.path.startsWith('/google') || req.path.startsWith('/github')) {
-        return cors()(req, res, next); // Allow all origins for OAuth flows
+        return cors()(req, res, next);
     }
     privateCors(req, res, next);
 }, authRoute);

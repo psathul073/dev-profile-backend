@@ -1,17 +1,16 @@
 import express from "express";
 import passport from "../config/passport.js";
 import env from "dotenv";
-import cors from "cors";
 
 env.config();
 
 const router = express.Router();
 
 // Google Auth Route✅
-router.get("/google", cors(), passport.authenticate("google", { scope: ["profile", "email"] }));
+router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 
 router.get("/google/callback",
-    cors(), // Allow all origins for Google login start.
+
     passport.authenticate("google", {
         successRedirect: process.env.FRONTEND_URL,
         failureRedirect: process.env.FRONTEND_URL + "/login",
@@ -19,8 +18,8 @@ router.get("/google/callback",
 );
 
 // Github Auth Route
-router.get('/github', cors(), passport.authenticate("github", { scope: ["user:email"] }));
-router.get('/github/callback', cors(), passport.authenticate('github', {
+router.get('/github',  passport.authenticate("github", { scope: ["user:email"] }));
+router.get('/github/callback',  passport.authenticate('github', {
     successRedirect: process.env.FRONTEND_URL,
     failureRedirect: process.env.FRONTEND_URL + "/login"
 }));
