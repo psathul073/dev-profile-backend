@@ -45,14 +45,6 @@ const privateCors = cors({
     credentials: true
 });
 
-// CORS for public API (allow all origins).
-const publicCors = cors({
-    origin:  "*",
-    allowedHeaders: ["Content-Type", "x-api-key"],
-    credentials: false
-});
-
-
 app.use(express.json()); // Parses incoming JSON requests
 app.set('trust proxy', 1); // Important for Render working...
 

@@ -7,6 +7,14 @@ const publicRoute = express.Router();
 const db = admin.firestore();
 
 // Apply CORS to the router.
+
+// CORS for public API (allow all origins).
+const publicCors = cors({
+    origin:  "*",
+    allowedHeaders: ["Content-Type", "x-api-key"],
+    credentials: false
+});
+
 publicRoute.use(publicCors);
 
 // For fetch all projects by API key.
