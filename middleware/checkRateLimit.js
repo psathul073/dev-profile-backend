@@ -4,42 +4,44 @@ const db = admin.firestore();
 
 const checkRateLimit = async (req, res, next) => {
 
-    const apiKey = req.headers["x-api-key"];
+    // No limit for internal frontend ✅
+    // if (internalOrigins.includes(req.headers.origin)) return next();
 
+    const apiKeyData = req.apiKeyData;
+    const today = new Date().toISOString().split('T')[0];
     const limitPerDay = 100;
 
-    if (!apiKey) return res.status(401).json({ error: "API key required" });
+    let { requestsToday, lastRequestDate, userId } = apiKeyData;
 
-    const apiKeyRef = db.collection('apiKeys').doc(apiKey);
-    const keySnapshots = await apiKeyRef.get();
-
-
-    if (!keySnapshots.exists) return res.status(403).json({ error: "Invalid API key" });
-
-    const keyData = keySnapshots.data();
-
-    const today = new Date().toISOString().split('T')[0];
-
-    // Reset count for new day.
-    if (keyData.lastRequestDate !== today) {
-        keyData.requestsToday = 0;
-        keyData.lastRequestDate = today;
-    };
+    // Reset daily counter if date changed.
+    if (lastRequestDate !== today) {
+        requestsToday = 0;
+        lastRequestDate = today;
+    }
 
     // Req limit is exceeded.
-    if (keyData.requestsToday >= limitPerDay) {
-        throw new Error("API rate limit exceeded for today.");
-    };
+    if (requestsToday >= limitPerDay) {
+        return res.status(429).json({ error: "Daily API limit reached" });
+    }
 
-    // Increment usage.
-    await apiKeyRef.set({
-        ...keyData,
-        requestsToday: keyData.requestsToday + 1,
-    }, { merge: true });
+    try {
+        // Update Firestore counter.
+        const apiKeyRef = db.collection('apiKeys').doc(apiKeyData.id);
 
-    req.userId = keyData.userId;
+        await apiKeyRef.update({
+            requestsToday: requestsToday + 1,
+            lastRequestDate: today
+        });
 
-    next();
+        req.userId = userId;
+
+        next();
+
+    } catch (error) {
+        console.error("Error updating API Key:", error);
+        res.status(500).json({ error: "Server Error" });
+    }
+
 }
 
 export default checkRateLimit

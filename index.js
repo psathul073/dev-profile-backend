@@ -7,8 +7,9 @@ import authRoute from "./routes/auth-routes.js";
 import protectedRoute from "./routes/protected-route.js";
 import profileRoute from "./routes/profile-route.js";
 import projectRoutes from "./routes/project-routes.js";
+import publicRoute from "./routes/public-route.js";
 import connectPgSimple from "connect-pg-simple";
-import pkg  from 'pg';
+import pkg from 'pg';
 
 
 env.config();
@@ -26,10 +27,31 @@ const pool = new Pool({
     },
 });
 
-app.use(cors({
-    origin: process.env.FRONTEND_URL, // ✅ Frontend full URL with https
-    credentials: true, // ✅ To send cookies
-}));
+// Internal origins (no API key required).
+const internalOrigins = [
+    process.env.FRONTEND_URL // Prod frontend
+];
+
+// Cors setup ☑️
+// CORS for private routes (only allowed own frontend).
+const privateCors = cors({
+
+    origin: (origin, callback) => {
+
+        if (!origin || origin.includes('google') || origin.includes('github')) return callback(null, true); // (Postman, OAuth) / server-to-server,
+        if (internalOrigins.includes(origin)) return callback(null, true); // For our frontend.
+        return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true
+});
+
+// CORS for public API (allow all origins).
+const publicCors = cors({
+    origin: true, // or "*"
+    allowedHeaders: ["Content-Type", "x-api-key"],
+    credentials: false
+});
+
 
 app.use(express.json()); // Parses incoming JSON requests
 app.set('trust proxy', 1); // Important for Render working...
@@ -67,11 +89,15 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Routes
-app.use('/auth', authRoute);
-app.use('/', protectedRoute);
-app.use('/api', profileRoute);
-app.use('/project', projectRoutes);
+// Private routes (only frontend allowed).
+app.use('/auth', privateCors, authRoute);
+app.use('/', privateCors, protectedRoute);
+app.use('/user', privateCors, profileRoute);
+app.use('/project', privateCors, projectRoutes);
+
+// Public routes (API key + rate limit)
+app.use('/api', publicCors, publicRoute );
+
 
 // ⭐ Global error handler
 app.use((err, req, res, next) => {

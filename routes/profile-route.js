@@ -4,7 +4,6 @@ import upload from '../middleware/multer.js';
 import cloudinary from "../config/cloudinary.js";
 import admin from "../config/firebase.js";
 import { deleteUserImages, deleteUserProjects } from "../utils/deleteUserData.js";
-import checkRateLimit from "../middleware/checkRateLimit.js";
 
 
 env.config();
@@ -171,29 +170,5 @@ router.get('/generate-key', async (req, res) => {
         res.status(500).json({ type: false, error: "Server error" });
     }
 });
-
-// For fetch all projects by API key.
-router.get("/projects", checkRateLimit, async (req, res) => {
-    try {
-        const { limit = 10 } = req.query;
-        const UID  = req.userId;
-
-        // Get projects based on the userId.
-        const userProjectRef = db.collection('users').doc(UID).collection('projects').limit(Number(limit));
-
-        // Get all projects
-        const projectsSnapshot = await userProjectRef.get();
-        const projects = projectsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-        }));
-        
-        res.status(200).json({ type: true, ...projects });
-
-    } catch (error) {
-        res.status(500).json({ type: false, error: "Server error!" });
-    }
-});
-
 
 export default router
