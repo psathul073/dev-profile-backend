@@ -2,21 +2,10 @@ import express from 'express';
 import checkApiKey from '../middleware/checkApiKey.js';
 import checkRateLimit from '../middleware/checkRateLimit.js';
 import admin from '../config/firebase.js';
-import cors from "cors";
 
 const publicRoute = express.Router();
 const db = admin.firestore();
 
-// Apply CORS to the router.
-
-// CORS for public API (allow all origins).
-const publicCors = cors({
-    origin:  "*",
-    allowedHeaders: ["Content-Type", "x-api-key"],
-    credentials: false
-});
-
-publicRoute.use(publicCors);
 
 // For fetch all projects by API key.
 publicRoute.get("/projects", checkApiKey, checkRateLimit, async (req, res) => {

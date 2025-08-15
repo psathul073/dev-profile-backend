@@ -45,6 +45,14 @@ const privateCors = cors({
     credentials: true
 });
 
+// CORS for public API (allow all origins).
+const publicCors = cors({
+    origin: "*",
+    allowedHeaders: ["Content-Type", "x-api-key"],
+    credentials: false
+});
+
+
 app.use(express.json()); // Parses incoming JSON requests
 app.set('trust proxy', 1); // Important for Render working...
 
@@ -81,22 +89,20 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Private routes (only frontend allowed).
-app.use('/auth', (req, res, next) => {
-    // Allow OAuth redirect/callback to bypass private CORS
-    if (req.path.startsWith('/google') || req.path.startsWith('/github')) {
-        return cors()(req, res, next);
-    }
-    privateCors(req, res, next);
-}, authRoute);
+// 1️⃣ Public OAuth routes (no CORS restriction, so Google/GitHub work)
+app.use('/auth/google', cors(), authRoute);
+app.use('/auth/github', cors(), authRoute);
 
+// 2️⃣ All other /auth routes are protected by privateCors
+app.use('/auth', privateCors, authRoute);
+
+// 3️⃣ Other private routes
 app.use('/', privateCors, protectedRoute);
 app.use('/user', privateCors, profileRoute);
 app.use('/project', privateCors, projectRoutes);
 
-// Public routes (API key + rate limit)
-app.use('/api', publicRoute );
-
+// 4️⃣ Public API routes (anyone can access)
+app.use('/api', publicCors, publicRoute);
 
 // ⭐ Global error handler
 app.use((err, req, res, next) => {
