@@ -58,34 +58,34 @@ const privateCors = cors({
 app.use(express.json()); // Parses incoming JSON requests
 app.set('trust proxy', 1); // Important for Render working...
 
-// app.use(session({
-//     store:  new PgSession({
-//         pool,
-//         tableName: 'session', // default
-//     }),
-//     secret: process.env.SESSION_SECRET,
-//     resave: false,
-//     saveUninitialized: false,
-//     cookie: {
-//         maxAge: 1000 * 60 * 60 * 24 * 30,
-//         secure: process.env.NODE_ENV === "production",
-//         httpOnly: true,
-//         sameSite: "none",
-//     },
-// }));
-
-// For development time ❌
 app.use(session({
+    store:  new PgSession({
+        pool,
+        tableName: 'session', // default
+    }),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 30,
-        secure: false,         // ❌ not using HTTPS locally
+        secure: process.env.NODE_ENV === "production",
         httpOnly: true,
-        sameSite: "lax",       // ✅ lax works locally with http
+        sameSite: "none",
     },
 }));
+
+// For development time ❌
+// app.use(session({
+//     secret: process.env.SESSION_SECRET,
+//     resave: false,
+//     saveUninitialized: false,
+//     cookie: {
+//         maxAge: 1000 * 60 * 60 * 24 * 30,
+//         secure: false,         // ❌ not using HTTPS locally
+//         httpOnly: true,
+//         sameSite: "lax",       // ✅ lax works locally with http
+//     },
+// }));
 
 // For passport.
 app.use(passport.initialize());
