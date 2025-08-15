@@ -4,7 +4,7 @@ const db = admin.firestore();
 
 const checkRateLimit = async (req, res, next) => {
 
-    // No limit for internal frontend ✅
+    // No limit for internal frontend.
     // if (internalOrigins.includes(req.headers.origin)) return next();
 
     const apiKeyData = req.apiKeyData;

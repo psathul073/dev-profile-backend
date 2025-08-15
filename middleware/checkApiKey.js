@@ -6,7 +6,7 @@ const checkApiKey = async (req, res, next) => {
 
     const apiKey = req.headers["x-api-key"];
 
-    // Internal frontend? skip the API key ✅
+    // Internal frontend? skip the API key.
     // if (internalOrigins.includes(req.headers.origin)) return next();
 
     // For missing API Key.

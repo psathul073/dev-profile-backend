@@ -34,10 +34,10 @@ const internalOrigins = [
     process.env.FRONTEND_URL, // Prod frontend
     "http://localhost:5173",
     "http://localhost:3000"
-];
+]; // Whitelists...
 
 
-// ✅ Private CORS — only allow frontend.
+// Private CORS — only allow frontend.
 const privateCors = cors({
     origin: (origin, callback) => {
         // Allow server-to-server requests or Postman (no origin)
@@ -50,7 +50,7 @@ const privateCors = cors({
 });
 
  const publicCors = cors({
-    origin: true, // ✅ Allow all origins.
+    origin: true, // Allow all origins.
     credentials: true
 });
 
@@ -58,49 +58,48 @@ const privateCors = cors({
 app.use(express.json()); // Parses incoming JSON requests
 app.set('trust proxy', 1); // Important for Render working...
 
-app.use(session({
-    store:  new PgSession({
-        pool,
-        tableName: 'session', // default
-    }),
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 30,
-        secure: process.env.NODE_ENV === "production",
-        httpOnly: true,
-        sameSite: "none",
-    },
-}));
-
-// For development time ❌
 // app.use(session({
+//     store:  new PgSession({
+//         pool,
+//         tableName: 'session', // default
+//     }),
 //     secret: process.env.SESSION_SECRET,
 //     resave: false,
 //     saveUninitialized: false,
 //     cookie: {
 //         maxAge: 1000 * 60 * 60 * 24 * 30,
-//         secure: false,         // ❌ not using HTTPS locally
+//         secure: process.env.NODE_ENV === "production",
 //         httpOnly: true,
-//         sameSite: "lax",       // ✅ lax works locally with http
+//         sameSite: "none",
 //     },
 // }));
 
+// For development time ❌
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        maxAge: 1000 * 60 * 60 * 24 * 30,
+        secure: false,         // ❌ not using HTTPS locally
+        httpOnly: true,
+        sameSite: "lax",       // ✅ lax works locally with http
+    },
+}));
 
+// For passport.
 app.use(passport.initialize());
 app.use(passport.session());
 
 
-// Public API routes (anyone can access)
+// Public API routes (anyone can access).
 app.use('/auth', publicCors, authRoute);
 app.use('/api', publicCors, publicRoute);
 
+// Private routes.
 app.use('/', privateCors, protectedRoute);
 app.use('/u', privateCors, profileRoute);
 app.use('/p', privateCors, projectRoutes);
-
-
 
 
 // ⭐ Global error handler
