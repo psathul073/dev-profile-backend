@@ -47,7 +47,7 @@ const privateCors = cors({
 
 // CORS for public API (allow all origins).
 const publicCors = cors({
-    origin: true, // or "*"
+    origin:  "*",
     allowedHeaders: ["Content-Type", "x-api-key"],
     credentials: false
 });
