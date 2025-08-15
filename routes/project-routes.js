@@ -385,31 +385,5 @@ router.get('/public-single', async (req, res) => {
 
 });
 
-// Fetch user profile for public. ✅
-router.get('/public-profile', async (req, res) => {
-
-    const { username } = req.query;
-
-    try {
-        // Find userId by username.
-        const userSnap = await db.collection('users').where('name', '==', username).limit(1).get();
-        if (userSnap.empty) return res.status(404).json({ error: 'User not found' });
-
-        const userId = userSnap.docs[0].id;
-        // console.log(userId, '--user ID--');
-
-        // Get user data based on userId.
-        const useRef = db.collection('users').doc(userId);
-        const doc = await useRef.get();
-        const userData = doc.data();
-
-        res.json({ ...userData });
-
-    } catch (error) {
-        console.error("Public Fetch Error:", error);
-        res.status(500).json({ type: false, error: "Server error" });
-    }
-});
-
 
 export default router;

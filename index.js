@@ -89,19 +89,14 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// 1️⃣ Public OAuth routes (no CORS restriction, so Google/GitHub work)
-app.use('/auth/google', cors(), authRoute);
-app.use('/auth/github', cors(), authRoute);
 
-// 2️⃣ All other /auth routes are protected by privateCors
-app.use('/auth', privateCors, authRoute);
-
-// 3️⃣ Other private routes
+// Private routes.
 app.use('/', privateCors, protectedRoute);
-app.use('/user', privateCors, profileRoute);
-app.use('/project', privateCors, projectRoutes);
+app.use('/u', privateCors, profileRoute);
+app.use('/p', privateCors, projectRoutes);
 
-// 4️⃣ Public API routes (anyone can access)
+// Public API routes (anyone can access).
+app.use('/auth', publicCors, authRoute);
 app.use('/api', publicCors, publicRoute);
 
 // ⭐ Global error handler

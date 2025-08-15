@@ -13,6 +13,36 @@ db.settings({ ignoreUndefinedProperties: true }); // To prevents undefined
 
 const router = express.Router();
 
+router.get("/user-data", (req, res) => {
+    // console.log(req.user);
+
+    if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+    }
+    // console.log(req.user.id, '===user ID,');
+
+    return res.json(req.user); // User data comes from Firestore via deserializeUser ✅
+});
+
+router.get('/logout', (req, res, next) => {
+    req.logout(err => {
+        if (err) return next(err);
+
+        req.session.destroy(err => {
+            if (err) return next(err);
+
+            res.clearCookie('connect.sid', {
+                path: '/',
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+            });
+
+            // res.redirect('/login');
+            res.status(200).json({ type: true, message: "Logged out successfully" });
+        });
+    });
+});
+
 router.post('/profile-update', upload.single('avatar'), async (req, res) => {
 
     if (!req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
@@ -133,6 +163,32 @@ router.delete('/delete-account', async (req, res) => {
 
     } catch (error) {
         console.error("Account deletion Error:", error);
+        res.status(500).json({ type: false, error: "Server error" });
+    }
+});
+
+// Fetch user profile for public. ✅
+router.get('/public-profile', async (req, res) => {
+
+    const { username } = req.query;
+
+    try {
+        // Find userId by username.
+        const userSnap = await db.collection('users').where('name', '==', username).limit(1).get();
+        if (userSnap.empty) return res.status(404).json({ error: 'User not found' });
+
+        const userId = userSnap.docs[0].id;
+        // console.log(userId, '--user ID--');
+
+        // Get user data based on userId.
+        const useRef = db.collection('users').doc(userId);
+        const doc = await useRef.get();
+        const userData = doc.data();
+
+        res.json({ ...userData });
+
+    } catch (error) {
+        console.error("Public Fetch Error:", error);
         res.status(500).json({ type: false, error: "Server error" });
     }
 });
