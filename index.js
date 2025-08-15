@@ -27,28 +27,31 @@ const pool = new Pool({
     },
 });
 
-// Internal origins (no API key required).
-const internalOrigins = [
-    process.env.FRONTEND_URL // Prod frontend
-];
 
 // Cors setup ☑️
-// CORS for private routes (only allowed own frontend).
-const privateCors = cors({
+// Internal origins.
+const internalOrigins = [
+    process.env.FRONTEND_URL, // Prod frontend
+    "http://localhost:5173",
+    "http://localhost:3000"
+];
 
+
+// ✅ Private CORS — only allow frontend.
+const privateCors = cors({
     origin: (origin, callback) => {
-        if (!origin) return callback(null, true); // Postman / server-to-server,
-        if (internalOrigins.includes(origin)) return callback(null, true); // For our frontend.
+        // Allow server-to-server requests or Postman (no origin)
+        if (!origin) return callback(null, true);
+        // Allow only internal origins
+        if (internalOrigins.includes(origin)) return callback(null, true);
         return callback(new Error("Not allowed by CORS"));
     },
     credentials: true
 });
 
-// CORS for public API (allow all origins).
-const publicCors = cors({
-    origin: "*",
-    allowedHeaders: ["Content-Type", "x-api-key"],
-    credentials: false
+ const publicCors = cors({
+    origin: true, // ✅ Allow all origins.
+    credentials: true
 });
 
 
@@ -89,13 +92,16 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 
+// Public API routes (anyone can access)
 app.use('/auth', publicCors, authRoute);
-// Private routes.
+app.use('/api', publicCors, publicRoute);
+
 app.use('/', privateCors, protectedRoute);
 app.use('/u', privateCors, profileRoute);
 app.use('/p', privateCors, projectRoutes);
-// Public API routes (anyone can access).
-app.use('/api', publicCors, publicRoute);
+
+
+
 
 // ⭐ Global error handler
 app.use((err, req, res, next) => {

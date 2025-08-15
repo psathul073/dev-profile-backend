@@ -1,17 +1,11 @@
 import express from "express";
 import passport from "../config/passport.js";
 import env from "dotenv";
-import cors from "cors";
+
 
 env.config();
+
 const router = express.Router();
-
-const publicCors = cors({
-    origin: true,
-    credentials: true,
-});
-
-router.use(publicCors);
 
 // Google Auth Route✅
 router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
@@ -28,8 +22,6 @@ router.get('/github/callback', passport.authenticate('github', {
     successRedirect: process.env.FRONTEND_URL,
     failureRedirect: process.env.FRONTEND_URL + "/login"
 }));
-
-
 
 
 export default router
