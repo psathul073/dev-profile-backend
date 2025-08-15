@@ -2,6 +2,7 @@ import express from 'express';
 import checkApiKey from '../middleware/checkApiKey.js';
 import checkRateLimit from '../middleware/checkRateLimit.js';
 import admin from '../config/firebase.js';
+import cors from "cors";
 
 const publicRoute = express.Router();
 const db = admin.firestore();
@@ -18,7 +19,7 @@ const publicCors = cors({
 publicRoute.use(publicCors);
 
 // For fetch all projects by API key.
-router.get("/projects", checkApiKey, checkRateLimit, async (req, res) => {
+publicRoute.get("/projects", checkApiKey, checkRateLimit, async (req, res) => {
     try {
         const { limit = 10 } = req.query;
         const UID = req.userId;

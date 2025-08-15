@@ -88,7 +88,7 @@ app.use('/user', privateCors, profileRoute);
 app.use('/project', privateCors, projectRoutes);
 
 // Public routes (API key + rate limit)
-app.use('/api', publicCors, publicRoute );
+app.use('/api', publicRoute );
 
 
 // ⭐ Global error handler
